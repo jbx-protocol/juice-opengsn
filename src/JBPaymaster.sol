@@ -9,11 +9,16 @@ import '@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol';
 import '@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol';
 
 import "@jbx-protocol/juice-contracts-v3/contracts/abstract/JBOperatable.sol";
+
+import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSplitAllocator.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBAllowanceTerminal.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 
-contract JBPaymaster is BasePaymaster, JBOperatable {
+/**
+ * OpenGSN paymaster extended to allow for better integration with Juicebox projects
+ */
+contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     error NO_HANDLER_FOR_CALL(address _target, bytes4 _method);
     error NOT_READY_FOR_REFILL();
 
@@ -70,7 +75,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable {
         // Use the allowance of the project
         _terminal.useAllowanceOf(
             projectId,
-            _refillAmount, // TODO: amount
+            _refillAmount,
             JBCurrencies.ETH,
             JBTokens.ETH,
             _refillAmount, // min returned
@@ -78,7 +83,16 @@ contract JBPaymaster is BasePaymaster, JBOperatable {
             "OpenGSN refill"
         );
 
-        //useAllowanceOf
+        relayHub.depositFor{value: payable(this).balance}(address(this));
+    }
+
+    /**
+     * @notice fund the relayhub by adding it to the funding cycle distribution
+     */
+    function allocate(JBSplitAllocationData calldata) external payable {
+        // Shorthand to make sure we are being paid ETH and not a token
+        require(msg.value > 0);
+        // Fund the relayhub
         relayHub.depositFor{value: payable(this).balance}(address(this));
     }
 
@@ -160,7 +174,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable {
         bytes calldata approvalData,
         uint256 maxPossibleGas
     ) internal virtual override returns (bytes memory, bool) {
-        (signature, approvalData);
+        (signature);
 
         address _to = relayRequest.request.to;
         bytes4 _methodSignature = _methodSigFromCalldata(
@@ -182,7 +196,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable {
 
         // Check if we should allow the call
         (bytes memory _context, bool _postRelayCallback) = _handler
-            .shouldAllowCall(projectId, _to, _methodSignature, relayRequest);
+            .shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
 
         // If the handler wants a callback we pass it the correct address, if its not needed we pass the 0 address
         return (

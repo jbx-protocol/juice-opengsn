@@ -15,7 +15,9 @@ interface IJBPaymasterHandler {
         uint256 _expectedProjectId,
         address _targetAddress,
         bytes4 _methodSignature,
-        GsnTypes.RelayRequest calldata _request
+        GsnTypes.RelayRequest calldata _request,
+        bytes calldata approvalData,
+        uint256 maxPossibleGas
     ) external view returns (bytes memory context, bool _postRelayCallback);
 
     function postRelayCall(
