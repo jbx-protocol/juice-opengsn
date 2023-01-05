@@ -144,14 +144,16 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         return "3.0.0-beta.2+opengsn.whitelist.ipaymaster";
     }
 
-    function setHandler(bytes32 _hash, IJBPaymasterHandler _handler)
+    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler)
         external
-        requirePermission(
-            projects.ownerOf(projectId),
-            projectId,
-            1 // TODO: replace with a correct id
-        )
+        // requirePermission(
+        //     projects.ownerOf(projectId),
+        //     projectId,
+        //     1 // TODO: replace with a correct id
+        // )
     {
+
+        bytes32 _hash = keccak256(abi.encode(_to, _methodSignature));
         handlers[_hash] = _handler;
         // TODO: emit event
     }

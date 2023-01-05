@@ -1,7 +1,9 @@
 # Juicebox OpenGSN (WIP)
 Extension to allow customizable usage of GSN from a Juicebox project
 
-## Idea
+*This uses the OpenGSN V3 contracts which are not available on mainnet yet*
+
+## Why?
 Juicebox projects may want to incentivize users to perform certain actions by paying gas for its users. Some examples of this are:
 - Pay the gas for a user when they pay the project more than 100 DAI
 - Pay the gas for a user when they are voting in governance

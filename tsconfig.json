@@ -1,0 +1,7 @@
+{
+    "include": [
+      "node_modules/@opengsn/contracts/types/truffle-contracts/index.d.ts",
+      "node_modules/@opengsn/contracts/types/truffle-contracts/types.d.ts"
+    ]
+  }
+  

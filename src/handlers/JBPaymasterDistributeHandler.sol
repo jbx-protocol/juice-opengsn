@@ -9,7 +9,7 @@ import '@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPayoutTerminal.
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPayoutRedemptionPaymentTerminal.sol";
 import '@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSingleTokenPaymentTerminalStore.sol';
 
-contract JBPaymaster is IJBPaymasterHandler {
+contract JBPaymasterDistributeHandler is IJBPaymasterHandler {
 
     error INVALID_PROJECT_ID();
     error INVALID_DISTRIBUTION_AMOUNT();
@@ -76,9 +76,13 @@ contract JBPaymaster is IJBPaymasterHandler {
             fundingCycleConfiguration
         );
 
-        // Only allow the call if we are distributing the full amount (left)
+        // Only allow the call if we are distributing the full amount
         // (this stops users from distributing 1 wei over and over to waste gas)
-        if(_distributedAmount + _amount != _distributionLimitOf || _amount == 0)
+        if(
+            _distributedAmount != 0 ||
+            _distributedAmount + _amount != _distributionLimitOf ||
+            _amount == 0
+        )
             revert INVALID_DISTRIBUTION_AMOUNT();
         
         // We don't require a callback
