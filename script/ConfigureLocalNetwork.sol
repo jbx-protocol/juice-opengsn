@@ -250,7 +250,6 @@ contract TestBaseWorkflow is Script {
     );
 
     // Done with the Juicebox aspect, lets label them
-    vm.stopBroadcast();
     vm.label(_multisig, 'projectOwner');
     vm.label(_beneficiary, 'beneficiary');
     vm.label(address(_jbOperatorStore), 'JBOperatorStore');
@@ -271,7 +270,6 @@ contract TestBaseWorkflow is Script {
     _terminals[0] = _jbETHPaymentTerminal;
 
     // Start deploying the JBX <-> GSN contracts
-    vm.startBroadcast(_multisig);
 
     // Launch the project
     uint256 projectId = _jbController.launchProjectFor(
@@ -336,6 +334,8 @@ contract TestBaseWorkflow is Script {
     // Register the handler
     paymaster.setHandler(address(_callable), Callable.performCall.selector, _handler);
 
+    // Fund the Paymaster
+    relayhub.depositFor{value: 0.1 ether}(address(paymaster));
   }
 
   //https://ethereum.stackexchange.com/questions/24248/how-to-calculate-an-ethereum-contracts-address-during-its-creation-using-the-so

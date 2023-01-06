@@ -1,6 +1,7 @@
 // Note: Do not edit, this only gets used to setup a local environment because OpenGSN uses hardhat.
 // Everything else uses Foundry
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-web3";
 import type { HardhatUserConfig } from "hardhat/config";
 import { readFileSync } from 'fs';
 const mnemonic = readFileSync('./.secret', 'utf-8');
@@ -24,6 +25,12 @@ const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
+      accounts: {
+        mnemonic,
+      }
+    },
+    local: {
+      url: "http://127.0.0.1:8545",
       accounts: {
         mnemonic,
       }
