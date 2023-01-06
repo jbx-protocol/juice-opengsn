@@ -17,7 +17,7 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBOperatorStore.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPayoutRedemptionPaymentTerminal.sol";
 
-contract DefifaGovernorTest is Test {
+contract JBPaymasterTest is Test {
     uint256 projectId;
     JBPaymaster paymaster;
     address owner = address(0xaa71A9F7c128a3B608A32F31811a3977BfE94C39);

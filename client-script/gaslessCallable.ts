@@ -32,7 +32,7 @@ async function main() {
     console.log(JBPaymasterAddress, CallableAddress, hre.web3.currentProvider);
     //if(!hre.web3.currentProvider) return;
     console.log(hre.network.config, hre.ethers.provider);
-    const provider = RelayProvider.newProvider({ provider: hre.web3.eth.currentProvider, config });
+    const provider = RelayProvider.newProvider({ provider: hre.web3.eth.currentProvider as any, config });
     await provider.init();
 
     
