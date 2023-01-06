@@ -5,8 +5,8 @@ import "./interfaces/IJBPaymasterHandler.sol";
 
 import "@opengsn/contracts/src/BasePaymaster.sol";
 
-import '@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol';
-import '@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol';
+import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol";
+import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol";
 
 import "@jbx-protocol/juice-contracts-v3/contracts/abstract/JBOperatable.sol";
 
@@ -19,15 +19,22 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
  * OpenGSN paymaster extended to allow for better integration with Juicebox projects
  */
 contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
+    //*********************************************************************//
+    // --------------------------- custom errors ------------------------- //
+    //*********************************************************************//
+
+    //*********************************************************************//
+    // --------------------------- custom errors ------------------------- //
+    //*********************************************************************//
     error NO_HANDLER_FOR_CALL(address _target, bytes4 _method);
     error NOT_READY_FOR_REFILL();
 
     uint256 immutable projectId;
 
     /**
-     @notice
-     Mints ERC-721's that represent project ownership.
-    */
+     * @notice
+     *  Mints ERC-721's that represent project ownership.
+     */
     IJBProjects public immutable projects;
 
     IJBDirectory public immutable directory;
@@ -40,12 +47,9 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     uint256 refillToAmount = 1 ether;
     uint256 refillBelow = 0.5 ether;
 
-    constructor(
-        uint256 _projectId,
-        IJBProjects _projects,
-        IJBDirectory _directory,
-        IJBOperatorStore _operatorStore
-    ) JBOperatable(_operatorStore) {
+    constructor(uint256 _projectId, IJBProjects _projects, IJBDirectory _directory, IJBOperatorStore _operatorStore)
+        JBOperatable(_operatorStore)
+    {
         projects = _projects;
         projectId = _projectId;
         directory = _directory;
@@ -54,7 +58,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     /**
      * @notice We override default paymaster behavior
      */
-    receive() external virtual override payable {}
+    receive() external payable virtual override {}
 
     /**
      * @notice fund the relayhub by using the projects allowance, anyone may call this,
@@ -63,14 +67,13 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     function fundFromAllowance() public {
         // Check if the paymaster wants to be refilled
         uint256 _currentBalance = relayHub.balanceOf(address(this));
-        if(_currentBalance > refillBelow) revert NOT_READY_FOR_REFILL();
+        if (_currentBalance > refillBelow) revert NOT_READY_FOR_REFILL();
 
         // Calculate how much we should refill
         uint256 _refillAmount = refillToAmount - _currentBalance;
 
-        IJBAllowanceTerminal _terminal = IJBAllowanceTerminal(
-            address(directory.primaryTerminalOf(projectId, JBTokens.ETH))
-        );
+        IJBAllowanceTerminal _terminal =
+            IJBAllowanceTerminal(address(directory.primaryTerminalOf(projectId, JBTokens.ETH)));
 
         // Use the allowance of the project
         _terminal.useAllowanceOf(
@@ -109,21 +112,14 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         )
     {
         // Withdraw the full balance
-        relayHub.withdraw(
-            payable(this),
-            relayHub.balanceOf(address(this))
-        );
+        relayHub.withdraw(payable(this), relayHub.balanceOf(address(this)));
 
         // Get the primary ETH terminal of the projecy
         IJBPaymentTerminal _terminal = directory.primaryTerminalOf(projectId, JBTokens.ETH);
 
         // Add the balance back to the project
         _terminal.addToBalanceOf{value: payable(this).balance}(
-            projectId,
-            payable(this).balance,
-            address(0),
-            "OpenGSN refund",
-            bytes('')
+            projectId, payable(this).balance, address(0), "OpenGSN refund", bytes("")
         );
     }
 
@@ -134,25 +130,17 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         return projects.ownerOf(projectId);
     }
 
-    function versionPaymaster()
-        external
-        view
-        virtual
-        override
-        returns (string memory)
-    {
+    function versionPaymaster() external view virtual override returns (string memory) {
         return "3.0.0-beta.2+opengsn.whitelist.ipaymaster";
     }
 
-    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler)
-        external
-        // requirePermission(
-        //     projects.ownerOf(projectId),
-        //     projectId,
-        //     1 // TODO: replace with a correct id
-        // )
+    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler) external 
+    // requirePermission(
+    //     projects.ownerOf(projectId),
+    //     projectId,
+    //     1 // TODO: replace with a correct id
+    // )
     {
-
         bytes32 _hash = keccak256(abi.encode(_to, _methodSignature));
         handlers[_hash] = _handler;
         // TODO: emit event
@@ -179,12 +167,8 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         (signature);
 
         address _to = relayRequest.request.to;
-        bytes4 _methodSignature = _methodSigFromCalldata(
-            relayRequest.request.data
-        );
-        IJBPaymasterHandler _handler = handlers[
-            keccak256(abi.encode(_to, _methodSignature))
-        ];
+        bytes4 _methodSignature = _methodSigFromCalldata(relayRequest.request.data);
+        IJBPaymasterHandler _handler = handlers[keccak256(abi.encode(_to, _methodSignature))];
 
         // If no handler was found for this specific call
         if (address(_handler) == address(0)) {
@@ -192,22 +176,17 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
             _handler = _fallbackHandler;
 
             // If there is no fallback set, we revert
-            if (address(_handler) == address(0))
+            if (address(_handler) == address(0)) {
                 revert NO_HANDLER_FOR_CALL(_to, _methodSignature);
+            }
         }
 
         // Check if we should allow the call
-        (bytes memory _context, bool _postRelayCallback) = _handler
-            .shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
+        (bytes memory _context, bool _postRelayCallback) =
+            _handler.shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
 
         // If the handler wants a callback we pass it the correct address, if its not needed we pass the 0 address
-        return (
-            abi.encode(
-                _postRelayCallback ? _handler : IJBPaymasterHandler(address(0)),
-                _context
-            ),
-            false
-        );
+        return (abi.encode(_postRelayCallback ? _handler : IJBPaymasterHandler(address(0)), _context), false);
     }
 
     function _postRelayedCall(
@@ -218,24 +197,14 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     ) internal virtual override {
         (context, success, gasUseWithoutPost, relayData);
 
-        (IJBPaymasterHandler _handler, bytes memory _subContext) = abi.decode(
-            context,
-            (IJBPaymasterHandler, bytes)
-        );
+        (IJBPaymasterHandler _handler, bytes memory _subContext) = abi.decode(context, (IJBPaymasterHandler, bytes));
         if (address(_handler) == address(0)) return;
 
         _handler.postRelayCall(_subContext);
     }
 
     // https://ethereum.stackexchange.com/questions/61826/how-to-extract-function-signature-from-msg-data
-    function _methodSigFromCalldata(bytes calldata _data)
-        public
-        pure
-        returns (bytes4)
-    {
-        return (bytes4(_data[0]) |
-            (bytes4(_data[1]) >> 8) |
-            (bytes4(_data[2]) >> 16) |
-            (bytes4(_data[3]) >> 24));
+    function _methodSigFromCalldata(bytes calldata _data) public pure returns (bytes4) {
+        return (bytes4(_data[0]) | (bytes4(_data[1]) >> 8) | (bytes4(_data[2]) >> 16) | (bytes4(_data[3]) >> 24));
     }
 }

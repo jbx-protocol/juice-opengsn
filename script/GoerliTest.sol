@@ -13,7 +13,6 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBOperatorStore.sol";
 
-
 contract GoerliTestScript is Script {
     uint256 projectId;
     JBPaymaster paymaster;
@@ -41,44 +40,44 @@ contract GoerliTestScript is Script {
         projectId = controller.launchProjectFor(
             // Project is owned by this contract.
             address(this),
-            JBProjectMetadata({content: 'myIPFSHash', domain: 1}),
-            JBFundingCycleData ({
-            duration: 1 weeks,
-            // Don't mint project tokens.
-            weight: 0,
-            discountRate: 0,
-            ballot: IJBFundingCycleBallot(address(0))
+            JBProjectMetadata({content: "myIPFSHash", domain: 1}),
+            JBFundingCycleData({
+                duration: 1 weeks,
+                // Don't mint project tokens.
+                weight: 0,
+                discountRate: 0,
+                ballot: IJBFundingCycleBallot(address(0))
             }),
-            JBFundingCycleMetadata ({
-            global: JBGlobalFundingCycleMetadata({
-                allowSetTerminals: false,
-                allowSetController: false,
-                pauseTransfers: false
-            }),
-            reservedRate: 0,
-            // Full refunds.
-            redemptionRate: JBConstants.MAX_REDEMPTION_RATE,
-            ballotRedemptionRate: JBConstants.MAX_REDEMPTION_RATE,
-            pausePay: false,
-            pauseDistributions: false,
-            pauseRedeem: false,
-            pauseBurn: false,
-            allowMinting: false,
-            allowTerminalMigration: false,
-            allowControllerMigration: false,
-            holdFees: false,
-            preferClaimedTokenOverride: false,
-            useTotalOverflowForRedemptions: false,
-            useDataSourceForPay: true,
-            useDataSourceForRedeem: true,
-            dataSource: address(0),
-            metadata:  0
+            JBFundingCycleMetadata({
+                global: JBGlobalFundingCycleMetadata({
+                    allowSetTerminals: false,
+                    allowSetController: false,
+                    pauseTransfers: false
+                }),
+                reservedRate: 0,
+                // Full refunds.
+                redemptionRate: JBConstants.MAX_REDEMPTION_RATE,
+                ballotRedemptionRate: JBConstants.MAX_REDEMPTION_RATE,
+                pausePay: false,
+                pauseDistributions: false,
+                pauseRedeem: false,
+                pauseBurn: false,
+                allowMinting: false,
+                allowTerminalMigration: false,
+                allowControllerMigration: false,
+                holdFees: false,
+                preferClaimedTokenOverride: false,
+                useTotalOverflowForRedemptions: false,
+                useDataSourceForPay: true,
+                useDataSourceForRedeem: true,
+                dataSource: address(0),
+                metadata: 0
             }),
             0,
             new JBGroupedSplits[](0),
             new JBFundAccessConstraints[](0),
             _terminals,
-            ''
+            ""
         );
 
         // Deploy a paymaster for this project
@@ -92,7 +91,7 @@ contract GoerliTestScript is Script {
         // Set the relayhub and forwarder
         paymaster.setRelayHub(relayhub);
         paymaster.setTrustedForwarder(address(forwarder));
-        
+
         // Deploy the mock handler
         JBPaymasterCallableHandler _handler = new JBPaymasterCallableHandler();
         Callable _callable = new Callable(

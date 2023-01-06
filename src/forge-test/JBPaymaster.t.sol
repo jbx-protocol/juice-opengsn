@@ -29,52 +29,52 @@ contract DefifaGovernorTest is Test {
     IJBPaymentTerminal[] internal _terminals;
 
     function setUp() public virtual {
-      // Launch the project
-      projectId = controller.launchProjectFor(
-        // Project is owned by this contract.
-        address(owner),
-        JBProjectMetadata({content: 'myIPFSHash', domain: 1}),
-        JBFundingCycleData ({
-          duration: 1 weeks,
-          // Don't mint project tokens.
-          weight: 0,
-          discountRate: 0,
-          ballot: IJBFundingCycleBallot(address(0))
-        }),
-        JBFundingCycleMetadata ({
-          global: JBGlobalFundingCycleMetadata({
-            allowSetTerminals: false,
-            allowSetController: false,
-            pauseTransfers: false
-          }),
-          reservedRate: 0,
-          // Full refunds.
-          redemptionRate: JBConstants.MAX_REDEMPTION_RATE,
-          ballotRedemptionRate: JBConstants.MAX_REDEMPTION_RATE,
-          pausePay: false,
-          pauseDistributions: false,
-          pauseRedeem: false,
-          pauseBurn: false,
-          allowMinting: false,
-          allowTerminalMigration: false,
-          allowControllerMigration: false,
-          holdFees: false,
-          preferClaimedTokenOverride: false,
-          useTotalOverflowForRedemptions: false,
-          useDataSourceForPay: true,
-          useDataSourceForRedeem: true,
-          dataSource: address(0),
-          metadata:  0
-        }),
-        0,
-        new JBGroupedSplits[](0),
-        new JBFundAccessConstraints[](0),
-        _terminals,
-        ''
-      );
+        // Launch the project
+        projectId = controller.launchProjectFor(
+            // Project is owned by this contract.
+            address(owner),
+            JBProjectMetadata({content: "myIPFSHash", domain: 1}),
+            JBFundingCycleData({
+                duration: 1 weeks,
+                // Don't mint project tokens.
+                weight: 0,
+                discountRate: 0,
+                ballot: IJBFundingCycleBallot(address(0))
+            }),
+            JBFundingCycleMetadata({
+                global: JBGlobalFundingCycleMetadata({
+                    allowSetTerminals: false,
+                    allowSetController: false,
+                    pauseTransfers: false
+                }),
+                reservedRate: 0,
+                // Full refunds.
+                redemptionRate: JBConstants.MAX_REDEMPTION_RATE,
+                ballotRedemptionRate: JBConstants.MAX_REDEMPTION_RATE,
+                pausePay: false,
+                pauseDistributions: false,
+                pauseRedeem: false,
+                pauseBurn: false,
+                allowMinting: false,
+                allowTerminalMigration: false,
+                allowControllerMigration: false,
+                holdFees: false,
+                preferClaimedTokenOverride: false,
+                useTotalOverflowForRedemptions: false,
+                useDataSourceForPay: true,
+                useDataSourceForRedeem: true,
+                dataSource: address(0),
+                metadata: 0
+            }),
+            0,
+            new JBGroupedSplits[](0),
+            new JBFundAccessConstraints[](0),
+            _terminals,
+            ""
+        );
 
-      // Deploy a paymaster for this project
-      paymaster = new JBPaymaster(
+        // Deploy a paymaster for this project
+        paymaster = new JBPaymaster(
         projectId,
         projects,
         directory,
@@ -112,20 +112,17 @@ contract DefifaGovernorTest is Test {
     }
 
     function _fundPaymaster(IPaymaster _paymaster, uint256 _amount) private {
-      IRelayHub _relayHub = IRelayHub(_paymaster.getRelayHub());
-      assertTrue(address(_relayHub) != address(0), "Can not fund the paymaster if no relayhub is set");
+        IRelayHub _relayHub = IRelayHub(_paymaster.getRelayHub());
+        assertTrue(address(_relayHub) != address(0), "Can not fund the paymaster if no relayhub is set");
 
-      uint256 _balanceBefore = _relayHub.balanceOf(address(paymaster));
+        uint256 _balanceBefore = _relayHub.balanceOf(address(paymaster));
 
-      // Fund the paymaster/relayhub
-      vm.deal(owner, address(owner).balance + _amount);
-      vm.prank(owner);
-      _relayHub.depositFor{value: _amount}(address(_paymaster));
+        // Fund the paymaster/relayhub
+        vm.deal(owner, address(owner).balance + _amount);
+        vm.prank(owner);
+        _relayHub.depositFor{value: _amount}(address(_paymaster));
 
-      // Make sure the paymaster is now funded
-      assertEq(
-        relayhub.balanceOf(address(_paymaster)),
-        _balanceBefore + _amount
-      );
+        // Make sure the paymaster is now funded
+        assertEq(relayhub.balanceOf(address(_paymaster)), _balanceBefore + _amount);
     }
 }
