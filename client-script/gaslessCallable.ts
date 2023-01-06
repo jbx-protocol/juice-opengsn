@@ -43,7 +43,7 @@ async function main() {
     //console.log(Callable)
     
     // Perform the call
-    await CallableContract.methods.performCall().send({ from });
+    console.log("The tx receipt: ", await CallableContract.methods.performCall().send({ from, maxPriorityFeePerGas: 3000000000 }));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

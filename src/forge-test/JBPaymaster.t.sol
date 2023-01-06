@@ -102,7 +102,9 @@ contract DefifaGovernorTest is Test {
 
         // Deploy the mock handler
         JBPaymasterCallableHandler _handler = new JBPaymasterCallableHandler();
-        Callable _callable = new Callable();
+        Callable _callable = new Callable(
+          address(forwarder)
+        );
 
         // Register the handler
         vm.prank(owner);

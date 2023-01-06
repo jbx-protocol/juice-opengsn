@@ -329,7 +329,9 @@ contract TestBaseWorkflow is Script {
     
     // Deploy the mock handler
     JBPaymasterCallableHandler _handler = new JBPaymasterCallableHandler();
-    Callable _callable = new Callable();
+    Callable _callable = new Callable(
+      address(forwarder)
+    );
 
     // Register the handler
     paymaster.setHandler(address(_callable), Callable.performCall.selector, _handler);
