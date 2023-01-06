@@ -131,10 +131,7 @@ contract DefifaGovernorTest is Test {
         paymaster.fundFromAllowance();
 
         // We can't compare it exactly since JB will take a fee, so we just check if its atleast the minimum
-        assertGt(
-          relayhub.balanceOf(address(paymaster)),
-          paymaster.refillBelow()
-        );
+        assertGt(relayhub.balanceOf(address(paymaster)), paymaster.refillBelow());
     }
 
     function testPaymasterHandler() external {

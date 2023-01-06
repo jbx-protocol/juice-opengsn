@@ -12,16 +12,15 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSingleTokenPaym
 contract JBPaymasterCallableHandler is IJBPaymasterHandler {
     /**
      * @notice
-     * @dev this should revert if its not allowed
-     * @param _expectedProjectId the projectID that is paying for the call, the call should be regarding this projectId
+     * @dev this allows any call
      */
     function shouldAllowCall(
-        uint256 _expectedProjectId,
-        address _targetAddress,
-        bytes4 _methodSignature,
-        GsnTypes.RelayRequest calldata _request,
+        uint256 ,
+        address ,
+        bytes4 ,
+        GsnTypes.RelayRequest calldata,
         bytes calldata,
-        uint256 maxPossibleGas
+        uint256
     ) external view returns (bytes memory, bool) {
         // We don't require a callback
         return (bytes(""), false);

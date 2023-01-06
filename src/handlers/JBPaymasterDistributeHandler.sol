@@ -12,6 +12,7 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSingleTokenPaym
 contract JBPaymasterDistributeHandler is IJBPaymasterHandler {
     error INVALID_PROJECT_ID();
     error INVALID_DISTRIBUTION_AMOUNT();
+    error INVALID_CONFIGURATION();
 
     /**
      * @notice
@@ -24,10 +25,13 @@ contract JBPaymasterDistributeHandler is IJBPaymasterHandler {
         bytes4 _methodSignature,
         GsnTypes.RelayRequest calldata _request,
         bytes calldata,
-        uint256 maxPossibleGas
+        uint256 // maxPossibleGas
     ) external view returns (bytes memory, bool) {
-        // We can assume the target is correct, since this contract was registered in the handler as the handler for the target
-        require(_methodSignature == IJBPayoutTerminal.distributePayoutsOf.selector);
+        // We can assume the target is correct, since this contract was registered in the paymaster as the handler for this target
+        // We check if the method signature is the one we expect, otherwise we might get unexpected behavior
+        if (_methodSignature != IJBPayoutTerminal.distributePayoutsOf.selector) {
+            revert INVALID_CONFIGURATION();
+        }
 
         // Decode the calldata
         (
@@ -40,9 +44,10 @@ contract JBPaymasterDistributeHandler is IJBPaymasterHandler {
         ) = abi.decode(_request.request.data, (uint256, uint256, uint256, address, uint256, string));
 
         // Make sure this is a call for the expected project
-        if (_expectedProjectId != _projectId) revert INVALID_PROJECT_ID();
+        if (_expectedProjectId != _projectId) {
+            revert INVALID_PROJECT_ID();
+        }
 
-        // IJBSingleTokenPaymentTerminalStore
         IJBPayoutRedemptionPaymentTerminal _terminal = IJBPayoutRedemptionPaymentTerminal(_targetAddress);
 
         // Get a reference to the project's current funding cycle.

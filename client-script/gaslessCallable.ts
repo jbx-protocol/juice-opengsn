@@ -8,19 +8,19 @@ import Web3 from 'web3';
 import { AbiItem } from 'web3-utils'
 
 async function main() {
-    let JBPaymasterAddress;
-    let CallableAddress;
+    let JBPaymasterAddress = "0x3189e9F4193e01A184f562d73EF5c97829489034";
+    let CallableAddress = "0x44e1E0aF3dFaD1cf5233e0bE82475D5D8b29a2Bb";
     
-    for (let index = 0; index < forgeScriptTransactions.transactions.length; index++) {
-        const tx = forgeScriptTransactions.transactions[index];
-        if(tx.contractName == "JBPaymaster"){
-            JBPaymasterAddress = tx.contractAddress;
-        }
+    // for (let index = 0; index < forgeScriptTransactions.transactions.length; index++) {
+    //     const tx = forgeScriptTransactions.transactions[index];
+    //     if(tx.contractName == "JBPaymaster"){
+    //         JBPaymasterAddress = tx.contractAddress;
+    //     }
     
-        if(tx.contractName == "Callable"){
-            CallableAddress = tx.contractAddress;
-        }
-    }
+    //     if(tx.contractName == "Callable"){
+    //         CallableAddress = tx.contractAddress;
+    //     }
+    // }
     
     const config: Partial<GSNConfig> = { 
         paymasterAddress: JBPaymasterAddress,
@@ -43,7 +43,7 @@ async function main() {
     //console.log(Callable)
     
     // Perform the call
-    console.log("The tx receipt: ", await CallableContract.methods.performCall().send({ from, maxPriorityFeePerGas: 3000000000 }));
+    console.log("The tx receipt: ", await CallableContract.methods.performCall().send({ from, gasLimit: 50000 }));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

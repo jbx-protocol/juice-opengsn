@@ -62,7 +62,8 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         return projects.ownerOf(projectId);
     }
 
-    /***
+    /**
+     *
      * @notice Used by OpenGSN to identify the paymaste type
      */
     function versionPaymaster() external view virtual override returns (string memory) {
@@ -212,7 +213,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
             }
         }
 
-        // Check if we should allow the call
+        // Check if we should allow the call, this will revert if its not allowed
         (bytes memory _context, bool _postRelayCallback) =
             _handler.shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
 

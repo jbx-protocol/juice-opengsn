@@ -29,6 +29,12 @@ const config: HardhatUserConfig = {
         mnemonic,
       }
     },
+    goerli: {
+      url: "https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
+      accounts: {
+        mnemonic,
+      }
+    },
     local: {
       url: "http://127.0.0.1:8545",
       accounts: {
