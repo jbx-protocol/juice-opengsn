@@ -20,8 +20,10 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
  */
 contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     //*********************************************************************//
-    // --------------------------- custom errors ------------------------- //
+    // --------------------------- events -------------------------------- //
     //*********************************************************************//
+    event HandlerSet(address callable, bytes4 callableSignature, address handler, address setBy);
+    event FallbackHandlerSet(address handler, address setBy);
 
     //*********************************************************************//
     // --------------------------- custom errors ------------------------- //
@@ -29,24 +31,47 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     error NO_HANDLER_FOR_CALL(address _target, bytes4 _method);
     error NOT_READY_FOR_REFILL();
 
+    //*********************************************************************//
+    // --------------------- public stored properties -------------------- //
+    //*********************************************************************//
+
+    // The project this Paymaster is for
     uint256 immutable projectId;
-
-    /**
-     * @notice
-     *  Mints ERC-721's that represent project ownership.
-     */
+    // The JBProjects instance to use to track ownership
     IJBProjects public immutable projects;
-
+    // The JBDirectory to use to find the terminals
     IJBDirectory public immutable directory;
 
     // Mapping keccak256(target address, method signature)
     mapping(bytes32 => IJBPaymasterHandler) handlers;
-    //
+    // The handler that gets used if no specific handler is registered
     IJBPaymasterHandler _fallbackHandler;
+    // To what amount should the contract refill when doing so from the allowance (before JB fee)
+    uint256 public refillToAmount = 1 ether;
+    // Below what amount are users allowed to use the allowance to refill the contract
+    uint256 public refillBelow = 0.5 ether;
 
-    uint256 refillToAmount = 1 ether;
-    uint256 refillBelow = 0.5 ether;
+    //*********************************************************************//
+    // ------------------------- external views -------------------------- //
+    //*********************************************************************//
 
+    /**
+     * @dev Returns the address of the current owner. We override default ownable behavior in favor of a more Juicebox aproach.
+     */
+    function owner() public view virtual override returns (address) {
+        return projects.ownerOf(projectId);
+    }
+
+    /***
+     * @notice Used by OpenGSN to identify the paymaste type
+     */
+    function versionPaymaster() external view virtual override returns (string memory) {
+        return "3.0.0-beta.2+juicebox.project-owned.ipaymaster";
+    }
+
+    //*********************************************************************//
+    // -------------------------- constructor ---------------------------- //
+    //*********************************************************************//
     constructor(uint256 _projectId, IJBProjects _projects, IJBDirectory _directory, IJBOperatorStore _operatorStore)
         JBOperatable(_operatorStore)
     {
@@ -54,6 +79,10 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         projectId = _projectId;
         directory = _directory;
     }
+
+    //*********************************************************************//
+    // ---------------------- external transactions ---------------------- //
+    //*********************************************************************//
 
     /**
      * @notice We override default paymaster behavior
@@ -124,28 +153,26 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     }
 
     /**
-     * @dev Returns the address of the current owner. We override default ownable behavior in favor of a more Juicebox aproach.
+     *
+     * @notice Set a handler for a method call on a specific contract, can be used to extend/modify paymaster behavior
      */
-    function owner() public view virtual override returns (address) {
-        return projects.ownerOf(projectId);
-    }
-
-    function versionPaymaster() external view virtual override returns (string memory) {
-        return "3.0.0-beta.2+opengsn.whitelist.ipaymaster";
-    }
-
-    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler) external 
-    // requirePermission(
-    //     projects.ownerOf(projectId),
-    //     projectId,
-    //     1 // TODO: replace with a correct id
-    // )
+    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler)
+        external
+        requirePermission(
+            projects.ownerOf(projectId),
+            projectId,
+            1 // TODO: replace with a correct id
+        )
     {
         bytes32 _hash = keccak256(abi.encode(_to, _methodSignature));
         handlers[_hash] = _handler;
-        // TODO: emit event
+
+        emit HandlerSet(_to, _methodSignature, address(_handler), _msgSender());
     }
 
+    /**
+     * @notice set a (optional) fallback for when the paymaster receives a call it doesn't have a specific handler for
+     */
     function setFallbackHandler(IJBPaymasterHandler _handler)
         external
         requirePermission(
@@ -155,8 +182,12 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         )
     {
         _fallbackHandler = _handler;
-        // TODO: emit event
+        emit FallbackHandlerSet(address(_handler), _msgSender());
     }
+
+    //*********************************************************************//
+    // --------------------- internal overrides -------------------------- //
+    //*********************************************************************//
 
     function _preRelayedCall(
         GsnTypes.RelayRequest calldata relayRequest,
@@ -202,6 +233,10 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
 
         _handler.postRelayCall(_subContext);
     }
+
+    //*********************************************************************//
+    // --------------------- private helper functions -------------------- //
+    //*********************************************************************//
 
     // https://ethereum.stackexchange.com/questions/61826/how-to-extract-function-signature-from-msg-data
     function _methodSigFromCalldata(bytes calldata _data) public pure returns (bytes4) {

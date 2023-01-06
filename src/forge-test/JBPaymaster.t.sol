@@ -7,11 +7,15 @@ import "../JBPaymaster.sol";
 import "./mock/JBPaymasterCallableHandler.sol";
 import "./mock/Callable.sol";
 
+import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBConstants.sol";
+import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol";
+import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBOperations.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBController.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBOperatorStore.sol";
+import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPayoutRedemptionPaymentTerminal.sol";
 
 contract DefifaGovernorTest is Test {
     uint256 projectId;
@@ -22,6 +26,8 @@ contract DefifaGovernorTest is Test {
     IJBProjects projects = IJBProjects(0x21263a042aFE4bAE34F08Bb318056C181bD96D3b);
     IJBDirectory directory = IJBDirectory(0x8E05bcD2812E1449f0EC3aE24E2C395F533d9A99);
     IJBOperatorStore operatorStore = IJBOperatorStore(0x99dB6b517683237dE9C494bbd17861f3608F3585);
+    IJBPayoutRedemptionPaymentTerminal ethTerminal =
+        IJBPayoutRedemptionPaymentTerminal(0x55d4dfb578daA4d60380995ffF7a706471d7c719);
 
     IRelayHub relayhub = IRelayHub(0x40bE32219F0F106067ba95145e8F2b3e7930b201);
     IForwarder forwarder = IForwarder(0x7A95fA73250dc53556d264522150A940d4C50238);
@@ -29,6 +35,18 @@ contract DefifaGovernorTest is Test {
     IJBPaymentTerminal[] internal _terminals;
 
     function setUp() public virtual {
+        _terminals.push(ethTerminal);
+
+        JBFundAccessConstraints[] memory _fundConstraints = new JBFundAccessConstraints[](1);
+        _fundConstraints[0] = JBFundAccessConstraints({
+            terminal: IJBPaymentTerminal(ethTerminal),
+            token: JBTokens.ETH,
+            distributionLimit: 0,
+            distributionLimitCurrency: JBCurrencies.ETH,
+            overflowAllowance: 2 ether,
+            overflowAllowanceCurrency: JBCurrencies.ETH
+        });
+
         // Launch the project
         projectId = controller.launchProjectFor(
             // Project is owned by this contract.
@@ -68,17 +86,17 @@ contract DefifaGovernorTest is Test {
             }),
             0,
             new JBGroupedSplits[](0),
-            new JBFundAccessConstraints[](0),
+            _fundConstraints,
             _terminals,
             ""
         );
 
         // Deploy a paymaster for this project
         paymaster = new JBPaymaster(
-        projectId,
-        projects,
-        directory,
-        operatorStore
+          projectId,
+          projects,
+          directory,
+          operatorStore
       );
     }
 
@@ -91,10 +109,39 @@ contract DefifaGovernorTest is Test {
         _fundPaymaster(paymaster, 1 ether);
     }
 
+    function testFundPaymaster_usingAllowance() external {
+        // Set the relayHub
+        vm.prank(owner);
+        paymaster.setRelayHub(relayhub);
+
+        // Grant the paymaster permission to use the allowance
+        uint256[] memory permissions = new uint256[](1);
+        permissions[0] = JBOperations.USE_ALLOWANCE;
+        vm.prank(owner);
+        operatorStore.setOperator(
+            JBOperatorData({operator: address(paymaster), domain: 0, permissionIndexes: permissions})
+        );
+
+        // Fund the project
+        vm.deal(address(this), 10 ether);
+        ethTerminal.addToBalanceOf{value: 10 ether}(projectId, 10 ether, JBTokens.ETH, "", "");
+
+        // Fund the paymaster using the allowance
+        // Anyone may call this
+        paymaster.fundFromAllowance();
+
+        // We can't compare it exactly since JB will take a fee, so we just check if its atleast the minimum
+        assertGt(
+          relayhub.balanceOf(address(paymaster)),
+          paymaster.refillBelow()
+        );
+    }
+
     function testPaymasterHandler() external {
         // Set the relayHub
         vm.prank(owner);
         paymaster.setRelayHub(relayhub);
+        vm.prank(owner);
         paymaster.setTrustedForwarder(address(forwarder));
 
         // Fund the paymaster/relayhub
