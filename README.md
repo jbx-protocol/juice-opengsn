@@ -8,7 +8,14 @@ Juicebox projects may want to incentivize users to perform certain actions by pa
 - Pay the gas for a user when they pay the project more than 100 DAI
 - Pay the gas for a user when they are voting in governance
 - Pay the gas for a user when they call `distribute`
-- Allow automating on-chain tasks (like cron jobs)
+
+This can however also be used to automate on-chain tasks, some examples are:
+- Compounding the yield in an AppleJuice Terminal (WIP)
+- Automatically distribute funds as a new funding cycle begins
+- Queuing new Funding Cycle Configurations according to a schedule (ex. Defifa) 
+- Executing (on-chain) governance proposals as they pass
+- DCA treasury funds from one token into another at a set schedule
+- Refilling this contract itself with ETH so it can continue to pay for transactions 
 
 This extension attempts to create a minimal base implementation that can be build upon and configured by projects to their liking.
 
