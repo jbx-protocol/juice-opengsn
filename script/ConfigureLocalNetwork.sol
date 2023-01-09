@@ -322,7 +322,7 @@ contract TestBaseWorkflow is Script {
     );
 
         // Register the handler
-        paymaster.setHandler(address(_callable), Callable.performCall.selector, _handler);
+        paymaster.setHandler(address(_callable), Callable.performCall.selector, _handler, false);
 
         // Fund the Paymaster
         relayhub.depositFor{value: 0.1 ether}(address(paymaster));

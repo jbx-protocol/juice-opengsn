@@ -44,6 +44,8 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
 
     // Mapping keccak256(target address, method signature)
     mapping(bytes32 => IJBPaymasterHandler) handlers;
+    // TODO: pack value in the above mapping 
+    mapping(bytes32 => bool) checkTrustedForwarder;
     // The handler that gets used if no specific handler is registered
     IJBPaymasterHandler _fallbackHandler;
     // To what amount should the contract refill when doing so from the allowance (before JB fee)
@@ -157,7 +159,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
      *
      * @notice Set a handler for a method call on a specific contract, can be used to extend/modify paymaster behavior
      */
-    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler)
+    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler, bool requiresTrustedForwarder)
         external
         requirePermission(
             projects.ownerOf(projectId),
@@ -167,6 +169,9 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     {
         bytes32 _hash = keccak256(abi.encode(_to, _methodSignature));
         handlers[_hash] = _handler;
+
+        // 
+        checkTrustedForwarder[_hash] = requiresTrustedForwarder;
 
         emit HandlerSet(_to, _methodSignature, address(_handler), _msgSender());
     }
@@ -213,6 +218,8 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
             }
         }
 
+        // TODO: Add trustedForwarder check
+
         // Check if we should allow the call, this will revert if its not allowed
         (bytes memory _context, bool _postRelayCallback) =
             _handler.shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
@@ -233,6 +240,13 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         if (address(_handler) == address(0)) return;
 
         _handler.postRelayCall(_subContext);
+    }
+
+    function _verifyForwarder(
+        GsnTypes.RelayRequest calldata
+    ) internal view virtual override {
+        // We override GNS default behavior as not every call we do requires the recipeint contract to trust the forwarder
+        // Some contracts are entirely permisionless and the contract does not care about who calls it
     }
 
     //*********************************************************************//

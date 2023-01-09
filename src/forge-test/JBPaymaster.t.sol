@@ -152,7 +152,7 @@ contract JBPaymasterTest is Test {
 
         // Register the handler
         vm.prank(owner);
-        paymaster.setHandler(address(_callable), Callable.performCall.selector, _handler);
+        paymaster.setHandler(address(_callable), Callable.performCall.selector, _handler, false);
     }
 
     function _fundPaymaster(IPaymaster _paymaster, uint256 _amount) private {

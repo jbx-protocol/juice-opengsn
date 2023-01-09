@@ -52,9 +52,8 @@ contract JBPaymasterDistributeHandler is IJBPaymasterHandler {
             revert INVALID_PROJECT_ID();
         }
 
-        IJBPayoutRedemptionPaymentTerminal _terminal = IJBPayoutRedemptionPaymentTerminal(_targetAddress);
-
         // Get a reference to the project's current funding cycle.
+        IJBPayoutRedemptionPaymentTerminal _terminal = IJBPayoutRedemptionPaymentTerminal(_targetAddress);
         uint256 fundingCycleConfiguration = _terminal.store().fundingCycleStore().currentOf(_projectId).configuration;
 
         // Get the FCs distribution limit
