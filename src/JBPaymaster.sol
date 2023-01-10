@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "./structs/HandlerOptions.sol";
+
 import "./interfaces/IJBPaymasterHandler.sol";
 
 import "@opengsn/contracts/src/BasePaymaster.sol";
@@ -43,11 +45,9 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     IJBDirectory public immutable directory;
 
     // Mapping keccak256(target address, method signature)
-    mapping(bytes32 => IJBPaymasterHandler) handlers;
-    // TODO: pack value in the above mapping 
-    mapping(bytes32 => bool) checkTrustedForwarder;
+    mapping(bytes32 => HandlerOptions) handlers;
     // The handler that gets used if no specific handler is registered
-    IJBPaymasterHandler _fallbackHandler;
+    HandlerOptions fallbackHandler;
     // To what amount should the contract refill when doing so from the allowance (before JB fee)
     uint256 public refillToAmount = 1 ether;
     // Below what amount are users allowed to use the allowance to refill the contract
@@ -159,7 +159,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
      *
      * @notice Set a handler for a method call on a specific contract, can be used to extend/modify paymaster behavior
      */
-    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler, bool requiresTrustedForwarder)
+    function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler, bool _ignoreTrustedForwarder)
         external
         requirePermission(
             projects.ownerOf(projectId),
@@ -168,10 +168,10 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         )
     {
         bytes32 _hash = keccak256(abi.encode(_to, _methodSignature));
-        handlers[_hash] = _handler;
-
-        // 
-        checkTrustedForwarder[_hash] = requiresTrustedForwarder;
+        handlers[_hash] = HandlerOptions({
+            ignoreTrustedForwarder: _ignoreTrustedForwarder,
+            handler: _handler
+        });
 
         emit HandlerSet(_to, _methodSignature, address(_handler), _msgSender());
     }
@@ -179,7 +179,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     /**
      * @notice set a (optional) fallback for when the paymaster receives a call it doesn't have a specific handler for
      */
-    function setFallbackHandler(IJBPaymasterHandler _handler)
+    function setFallbackHandler(IJBPaymasterHandler _handler, bool _ignoreTrustedForwarder)
         external
         requirePermission(
             projects.ownerOf(projectId),
@@ -187,7 +187,10 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
             1 // TODO: replace with a correct id
         )
     {
-        _fallbackHandler = _handler;
+        fallbackHandler = HandlerOptions({
+            ignoreTrustedForwarder: _ignoreTrustedForwarder,
+            handler: _handler
+        });
         emit FallbackHandlerSet(address(_handler), _msgSender());
     }
 
@@ -205,27 +208,30 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
 
         address _to = relayRequest.request.to;
         bytes4 _methodSignature = _methodSigFromCalldata(relayRequest.request.data);
-        IJBPaymasterHandler _handler = handlers[keccak256(abi.encode(_to, _methodSignature))];
+        HandlerOptions memory _handlerOptions = handlers[keccak256(abi.encode(_to, _methodSignature))];
 
         // If no handler was found for this specific call
-        if (address(_handler) == address(0)) {
+        if (address(_handlerOptions.handler) == address(0)) {
             // Attempt to use the fallback
-            _handler = _fallbackHandler;
+            _handlerOptions = fallbackHandler;
 
             // If there is no fallback set, we revert
-            if (address(_handler) == address(0)) {
+            if (address(_handlerOptions.handler) == address(0)) {
                 revert NO_HANDLER_FOR_CALL(_to, _methodSignature);
             }
         }
 
-        // TODO: Add trustedForwarder check
+        // If the target contract does not use/care about who the _msgSender is then we can
+        // disable the trustedForwarder check, also allows for compatibility with non-ERC2771Recipient contracts.
+        if(!_handlerOptions.ignoreTrustedForwarder)
+            GsnEip712Library.verifyForwarderTrusted(relayRequest);
 
         // Check if we should allow the call, this will revert if its not allowed
         (bytes memory _context, bool _postRelayCallback) =
-            _handler.shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
+            _handlerOptions.handler.shouldAllowCall(projectId, _to, _methodSignature, relayRequest, approvalData, maxPossibleGas);
 
         // If the handler wants a callback we pass it the correct address, if its not needed we pass the 0 address
-        return (abi.encode(_postRelayCallback ? _handler : IJBPaymasterHandler(address(0)), _context), false);
+        return (abi.encode(_postRelayCallback ? _handlerOptions.handler : IJBPaymasterHandler(address(0)), _context), false);
     }
 
     function _postRelayedCall(
@@ -246,7 +252,8 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
         GsnTypes.RelayRequest calldata
     ) internal view virtual override {
         // We override GNS default behavior as not every call we do requires the recipeint contract to trust the forwarder
-        // Some contracts are entirely permisionless and the contract does not care about who calls it
+        // Some contracts are entirely permisionless and the contract does not care about who calls it.
+        // This check is now optionally performed in `_preRelayedCall(..)`
     }
 
     //*********************************************************************//
