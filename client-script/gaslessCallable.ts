@@ -11,16 +11,16 @@ async function main() {
     let JBPaymasterAddress = "0x3189e9F4193e01A184f562d73EF5c97829489034";
     let CallableAddress = "0x44e1E0aF3dFaD1cf5233e0bE82475D5D8b29a2Bb";
     
-    // for (let index = 0; index < forgeScriptTransactions.transactions.length; index++) {
-    //     const tx = forgeScriptTransactions.transactions[index];
-    //     if(tx.contractName == "JBPaymaster"){
-    //         JBPaymasterAddress = tx.contractAddress;
-    //     }
+    for (let index = 0; index < forgeScriptTransactions.transactions.length; index++) {
+        const tx = forgeScriptTransactions.transactions[index];
+        if(tx.contractName == "JBPaymaster"){
+            JBPaymasterAddress = tx.contractAddress;
+        }
     
-    //     if(tx.contractName == "Callable"){
-    //         CallableAddress = tx.contractAddress;
-    //     }
-    // }
+        if(tx.contractName == "Callable"){
+            CallableAddress = tx.contractAddress;
+        }
+    }
     
     const config: Partial<GSNConfig> = { 
         paymasterAddress: JBPaymasterAddress,
