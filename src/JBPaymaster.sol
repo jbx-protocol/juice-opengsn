@@ -2,14 +2,14 @@
 pragma solidity ^0.8.13;
 
 import "./structs/HandlerOptions.sol";
-
 import "./interfaces/IJBPaymasterHandler.sol";
 
 import "@opengsn/contracts/src/BasePaymaster.sol";
 
+import "@jbx-protocol/juice-ownable/src/JBOwnable.sol";
+
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol";
-
 import "@jbx-protocol/juice-contracts-v3/contracts/abstract/JBOperatable.sol";
 
 import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSplitAllocator.sol";
@@ -20,7 +20,7 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 /**
  * OpenGSN paymaster extended to allow for better integration with Juicebox projects
  */
-contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
+contract JBPaymaster is JBOwnable, BasePaymaster, IJBSplitAllocator {
     //*********************************************************************//
     // --------------------------- events -------------------------------- //
     //*********************************************************************//
@@ -40,7 +40,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     // The project this Paymaster is for
     uint256 immutable projectId;
     // The JBProjects instance to use to track ownership
-    IJBProjects public immutable projects;
+    //IJBProjects public immutable projects;
     // The JBDirectory to use to find the terminals
     IJBDirectory public immutable directory;
 
@@ -58,13 +58,6 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     //*********************************************************************//
 
     /**
-     * @dev Returns the address of the current owner. We override default ownable behavior in favor of a more Juicebox aproach.
-     */
-    function owner() public view virtual override returns (address) {
-        return projects.ownerOf(projectId);
-    }
-
-    /**
      *
      * @notice Used by OpenGSN to identify the paymaste type
      */
@@ -76,7 +69,6 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
     constructor(uint256 _projectId, IJBProjects _projects, IJBDirectory _directory, IJBOperatorStore _operatorStore)
-        JBOperatable(_operatorStore)
     {
         projects = _projects;
         projectId = _projectId;
@@ -137,11 +129,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
      */
     function drain()
         external
-        requirePermission(
-            projects.ownerOf(projectId),
-            projectId,
-            1 // TODO: replace with a correct id
-        )
+        onlyOwner
     {
         // Withdraw the full balance
         relayHub.withdraw(payable(this), relayHub.balanceOf(address(this)));
@@ -161,11 +149,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
      */
     function setHandler(address _to, bytes4 _methodSignature, IJBPaymasterHandler _handler, bool _ignoreTrustedForwarder)
         external
-        requirePermission(
-            projects.ownerOf(projectId),
-            projectId,
-            1 // TODO: replace with a correct id
-        )
+        onlyOwner
     {
         bytes32 _hash = keccak256(abi.encode(_to, _methodSignature));
         handlers[_hash] = HandlerOptions({
@@ -181,11 +165,7 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
      */
     function setFallbackHandler(IJBPaymasterHandler _handler, bool _ignoreTrustedForwarder)
         external
-        requirePermission(
-            projects.ownerOf(projectId),
-            projectId,
-            1 // TODO: replace with a correct id
-        )
+        onlyOwner
     {
         fallbackHandler = HandlerOptions({
             ignoreTrustedForwarder: _ignoreTrustedForwarder,
@@ -263,5 +243,42 @@ contract JBPaymaster is BasePaymaster, JBOperatable, IJBSplitAllocator {
     // https://ethereum.stackexchange.com/questions/61826/how-to-extract-function-signature-from-msg-data
     function _methodSigFromCalldata(bytes calldata _data) public pure returns (bytes4) {
         return (bytes4(_data[0]) | (bytes4(_data[1]) >> 8) | (bytes4(_data[2]) >> 16) | (bytes4(_data[3]) >> 24));
+    }
+
+
+    //*********************************************************************//
+    // -------------------------- overrides ------------------------------ //
+    //*********************************************************************//
+
+    /// @inheritdoc JBOwnable
+    function renounceOwnership() public virtual override(JBOwnable, Ownable) {
+        JBOwnable.renounceOwnership();
+    }
+
+    /// @inheritdoc JBOwnable
+    function transferOwnership(address _newOwner) public virtual override(JBOwnable, Ownable) {
+        JBOwnable.transferOwnership(_newOwner);
+    }
+
+    /// @inheritdoc JBOwnable
+    function owner() public view virtual override(JBOwnable, Ownable) returns (address) {
+        return JBOwnable.owner();
+    }
+
+    /// @inheritdoc JBOwnable
+    function _transferOwnership(address _newOwner) internal virtual override(JBOwnable, Ownable) {
+        JBOwnable._transferOwnership(_newOwner);
+    }
+
+    // TODO: Modify JBOwnable to use the same logic as OZ onlyOwner
+    /// @inheritdoc JBOwnable
+    modifier onlyOwner override(JBOwnable, Ownable) {
+       JBOwner memory _ownerData = jbOwner;
+
+        address _owner = _ownerData.projectId == 0 ?
+         _ownerData.owner : projects.ownerOf(_ownerData.projectId);
+        
+        _requirePermission(_owner, _ownerData.projectId, _ownerData.permissionIndex);
+        _;
     }
 }
