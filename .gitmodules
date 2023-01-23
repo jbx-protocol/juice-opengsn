@@ -1,3 +1,6 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/juice-ownable"]
+	path = lib/juice-ownable
+	url = https://github.com/jbx-protocol/juice-ownable
