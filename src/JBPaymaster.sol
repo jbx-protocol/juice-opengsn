@@ -20,7 +20,7 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 /**
  * OpenGSN paymaster extended to allow for better integration with Juicebox projects
  */
-contract JBPaymaster is JBOwnable, BasePaymaster, IJBSplitAllocator {
+contract JBPaymaster is JBOwnablePartial, BasePaymaster, IJBSplitAllocator {
     //*********************************************************************//
     // --------------------------- events -------------------------------- //
     //*********************************************************************//
@@ -68,11 +68,18 @@ contract JBPaymaster is JBOwnable, BasePaymaster, IJBSplitAllocator {
     //*********************************************************************//
     // -------------------------- constructor ---------------------------- //
     //*********************************************************************//
-    constructor(uint256 _projectId, IJBProjects _projects, IJBDirectory _directory, IJBOperatorStore _operatorStore)
+    constructor(
+        uint256 _projectId,
+        IJBProjects _projects,
+        IJBDirectory _directory,
+        IJBOperatorStore _operatorStore
+    ) 
+        JBOwnablePartial(_projects, _operatorStore)
     {
-        projects = _projects;
         projectId = _projectId;
         directory = _directory;
+
+        _transferOwnership(address(0), uint88(_projectId));
     }
 
     //*********************************************************************//
@@ -250,35 +257,32 @@ contract JBPaymaster is JBOwnable, BasePaymaster, IJBSplitAllocator {
     // -------------------------- overrides ------------------------------ //
     //*********************************************************************//
 
-    /// @inheritdoc JBOwnable
-    function renounceOwnership() public virtual override(JBOwnable, Ownable) {
-        JBOwnable.renounceOwnership();
+    /// @inheritdoc JBOwnablePartial
+    function renounceOwnership() public virtual override(JBOwnablePartial, Ownable) {
+        JBOwnablePartial.renounceOwnership();
     }
 
-    /// @inheritdoc JBOwnable
-    function transferOwnership(address _newOwner) public virtual override(JBOwnable, Ownable) {
-        JBOwnable.transferOwnership(_newOwner);
+    /// @inheritdoc JBOwnablePartial
+    function transferOwnership(address _newOwner) public virtual override(JBOwnablePartial, Ownable) {
+        JBOwnablePartial.transferOwnership(_newOwner);
     }
 
-    /// @inheritdoc JBOwnable
-    function owner() public view virtual override(JBOwnable, Ownable) returns (address) {
-        return JBOwnable.owner();
+    /// @inheritdoc JBOwnablePartial
+    function owner() public view virtual override(JBOwnablePartial, Ownable) returns (address) {
+        return JBOwnablePartial.owner();
     }
 
-    /// @inheritdoc JBOwnable
-    function _transferOwnership(address _newOwner) internal virtual override(JBOwnable, Ownable) {
-        JBOwnable._transferOwnership(_newOwner);
+    /// @inheritdoc JBOwnablePartial
+    function _checkOwner() internal view virtual override(JBOwnablePartial, Ownable){
+        JBOwnablePartial._checkOwner();
     }
 
-    // TODO: Modify JBOwnable to use the same logic as OZ onlyOwner
-    /// @inheritdoc JBOwnable
-    modifier onlyOwner override(JBOwnable, Ownable) {
-       JBOwner memory _ownerData = jbOwner;
+    /// @inheritdoc JBOwnablePartial
+    function _transferOwnership(address _newOwner) internal virtual override(JBOwnablePartial, Ownable) {
+        JBOwnablePartial._transferOwnership(_newOwner);
+    }
 
-        address _owner = _ownerData.projectId == 0 ?
-         _ownerData.owner : projects.ownerOf(_ownerData.projectId);
-        
-        _requirePermission(_owner, _ownerData.projectId, _ownerData.permissionIndex);
-        _;
+    function _emitTransferEvent(address previousOwner, address newOwner) internal virtual override {
+        emit OwnershipTransferred(previousOwner, newOwner);
     }
 }

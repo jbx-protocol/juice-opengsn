@@ -1,5 +1,4 @@
-@jbx-protocol/juice-contracts-v3/=node_modules/@jbx-protocol/juice-contracts-v3/
-@jbx-protocol/juice-ownable=lib/juice-ownable/
+@jbx-protocol=node_modules/@jbx-protocol
 @openzeppelin=node_modules/@openzeppelin/
 @paulrberg=node_modules/@paulrberg/
 @opengsn=node_modules/@opengsn/
