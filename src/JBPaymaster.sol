@@ -20,7 +20,7 @@ import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 /**
  * OpenGSN paymaster extended to allow for better integration with Juicebox projects
  */
-contract JBPaymaster is JBOwnablePartial, BasePaymaster, IJBSplitAllocator {
+contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     //*********************************************************************//
     // --------------------------- events -------------------------------- //
     //*********************************************************************//
@@ -74,7 +74,7 @@ contract JBPaymaster is JBOwnablePartial, BasePaymaster, IJBSplitAllocator {
         IJBDirectory _directory,
         IJBOperatorStore _operatorStore
     ) 
-        JBOwnablePartial(_projects, _operatorStore)
+        JBOwnableOverrides(_projects, _operatorStore)
     {
         projectId = _projectId;
         directory = _directory;
@@ -257,29 +257,29 @@ contract JBPaymaster is JBOwnablePartial, BasePaymaster, IJBSplitAllocator {
     // -------------------------- overrides ------------------------------ //
     //*********************************************************************//
 
-    /// @inheritdoc JBOwnablePartial
-    function renounceOwnership() public virtual override(JBOwnablePartial, Ownable) {
-        JBOwnablePartial.renounceOwnership();
+    /// @inheritdoc JBOwnableOverrides
+    function renounceOwnership() public virtual override(JBOwnableOverrides, Ownable) {
+        JBOwnableOverrides.renounceOwnership();
     }
 
-    /// @inheritdoc JBOwnablePartial
-    function transferOwnership(address _newOwner) public virtual override(JBOwnablePartial, Ownable) {
-        JBOwnablePartial.transferOwnership(_newOwner);
+    /// @inheritdoc JBOwnableOverrides
+    function transferOwnership(address _newOwner) public virtual override(JBOwnableOverrides, Ownable) {
+        JBOwnableOverrides.transferOwnership(_newOwner);
     }
 
-    /// @inheritdoc JBOwnablePartial
-    function owner() public view virtual override(JBOwnablePartial, Ownable) returns (address) {
-        return JBOwnablePartial.owner();
+    /// @inheritdoc JBOwnableOverrides
+    function owner() public view virtual override(JBOwnableOverrides, Ownable) returns (address) {
+        return JBOwnableOverrides.owner();
     }
 
-    /// @inheritdoc JBOwnablePartial
-    function _checkOwner() internal view virtual override(JBOwnablePartial, Ownable){
-        JBOwnablePartial._checkOwner();
+    /// @inheritdoc JBOwnableOverrides
+    function _checkOwner() internal view virtual override(JBOwnableOverrides, Ownable){
+        JBOwnableOverrides._checkOwner();
     }
 
-    /// @inheritdoc JBOwnablePartial
-    function _transferOwnership(address _newOwner) internal virtual override(JBOwnablePartial, Ownable) {
-        JBOwnablePartial._transferOwnership(_newOwner);
+    /// @inheritdoc JBOwnableOverrides
+    function _transferOwnership(address _newOwner) internal virtual override(JBOwnableOverrides, Ownable) {
+        JBOwnableOverrides._transferOwnership(_newOwner);
     }
 
     function _emitTransferEvent(address previousOwner, address newOwner) internal virtual override {

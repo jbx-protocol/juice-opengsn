@@ -496,7 +496,7 @@
 
 "@jbx-protocol/juice-ownable@https://github.com/jbx-protocol/juice-ownable":
   version "0.0.1"
-  resolved "https://github.com/jbx-protocol/juice-ownable#6c26899da0baacb2cae8867f94902bbe2666908b"
+  resolved "https://github.com/jbx-protocol/juice-ownable#3d5c57c1e567d461cad44aa65b2edd17bb30c96c"
   dependencies:
     "@jbx-protocol/juice-contracts-v3" "^2.0.2"
     "@openzeppelin/contracts" "^4.8.0"
