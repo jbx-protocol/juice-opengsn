@@ -236,9 +236,10 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     }
 
     function _verifyForwarder(
-        GsnTypes.RelayRequest calldata
+        GsnTypes.RelayRequest calldata relayRequest
     ) internal view virtual override {
-        // We override GNS default behavior as not every call we do requires the recipeint contract to trust the forwarder
+        require(getTrustedForwarder() == relayRequest.relayData.forwarder, "Forwarder is not trusted");
+        // We override GNS default behavior as not every call we do requires the recipient contract to trust the forwarder
         // Some contracts are entirely permisionless and the contract does not care about who calls it.
         // This check is now optionally performed in `_preRelayedCall(..)`
     }
