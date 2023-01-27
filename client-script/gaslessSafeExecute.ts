@@ -1,4 +1,7 @@
 import hre, { ethers, web3 } from 'hardhat'
+import Web3Adapter from '@safe-global/safe-web3-lib'
+import Safe, { SafeFactory } from '@safe-global/safe-core-sdk'
+import SafeServiceClient from '@safe-global/safe-service-client'
 import { RelayProvider, GSNConfig, Web3ProviderBaseInterface } from '@opengsn/provider';
 import forwarder from "../build/gsn/Forwarder.json";
 import paymaster from "../build/gsn/Paymaster.json";
@@ -10,9 +13,8 @@ import { AbiItem } from 'web3-utils'
 
 async function main() {
     let JBPaymasterAddress = "0x205d871722cb1da1d0c9A24199fc1A886Dc5F9A4";
-    let terminalAddress = "0x55d4dfb578daA4d60380995ffF7a706471d7c719";
-    let projectId = 306;
-    let amount = ethers.utils.parseEther("0.1");
+    let safeAddress = "";
+    let safeTxHash = "";
 
     // for (let index = 0; index < forgeScriptTransactions.transactions.length; index++) {
     //     const tx = forgeScriptTransactions.transactions[index];
@@ -32,29 +34,31 @@ async function main() {
         }
     }
 
-    //console.log(JBPaymasterAddress, CallableAddress, hre.web3.currentProvider);
-    //if(!hre.web3.currentProvider) return;
-    //console.log(hre.network.config, hre.ethers.provider);
+    // Wrap our provider with the OpenGSN wrapper
     const provider = RelayProvider.newProvider({ provider: hre.web3.eth.currentProvider as any, config });
     await provider.init();
-
     
+    // Create the Web3 Provider ad signer
     const web3P = new Web3(provider);
     const from = provider.newAccount().address
-    const CallableContract = new web3P.eth.Contract(TerminalABI.abi as AbiItem[], terminalAddress);
 
-    //console.log(Callable)
-    
-    // Perform the call
-    console.log("The tx receipt: ",
-     await CallableContract.methods.distributePayoutsOf(
-        projectId,
-        amount,
-        1, // JBCurrencies.ETH
-        "0x000000000000000000000000000000000000EEEe", // JBTokens.ETH
-        0,
-        "⛽ OpenGSN Distribute",
-     ).send({ from, gasLimit: 300000 }));
+    // Initialize the web3 adapter for safe
+    const ethAdapter = new Web3Adapter({
+        web3P,
+        signerAddress: from
+    })
+   
+    // Initialize the Safe Service
+    const txServiceUrl = 'https://safe-transaction-mainnet.safe.global'
+    const safeService = new SafeServiceClient({ txServiceUrl, ethAdapter })
+
+    // Initialize the Safe SDK
+    const safeFactory = await SafeFactory.create({ ethAdapter })
+    const safeSdk = await Safe.create({ ethAdapter, safeAddress })
+
+    const safeTransaction = await safeService.getTransaction(safeTxHash);
+    const executeTxResponse = await safeSdk.executeTransaction(safeTransaction)
+    const receipt = executeTxResponse.transactionResponse && (await executeTxResponse.transactionResponse.wait())
 }
 
 // We recommend this pattern to be able to use async/await everywhere
