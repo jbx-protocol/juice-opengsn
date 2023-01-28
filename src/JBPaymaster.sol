@@ -79,7 +79,7 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
         projectId = _projectId;
         directory = _directory;
 
-        _transferOwnership(address(0), uint88(_projectId));
+        _transferOwnership(address(msg.sender), uint88(0));
     }
 
     //*********************************************************************//

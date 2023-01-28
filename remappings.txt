@@ -1,5 +1,6 @@
 @jbx-protocol=node_modules/@jbx-protocol
 @openzeppelin=node_modules/@openzeppelin/
+@safe-global=node_modules/@safe-global/safe-contracts/
 @paulrberg=node_modules/@paulrberg/
 @opengsn=node_modules/@opengsn/
 prb-math=node_modules/prb-math/

@@ -5,8 +5,12 @@ import "forge-std/Script.sol";
 
 import "../src/JBPaymaster.sol";
 import "../src/handlers/JBPaymasterDistributeHandler.sol";
+import "../src/handlers/JBPaymasterAllowAllHandler.sol";
 import "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
 import "../src/forge-test/mock/Callable.sol";
+
+import { SafeProxyFactory } from "@safe-global/contracts/proxies/SafeProxyFactory.sol";
+import { Safe } from "@safe-global/contracts/Safe.sol";
 
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBSplitsGroups.sol"; // JBSplitsGroups
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBOperations.sol";
@@ -28,6 +32,9 @@ contract ConfigureGoerli is Script {
     IJBPayoutRedemptionPaymentTerminal ethTerminal =
         IJBPayoutRedemptionPaymentTerminal(0x55d4dfb578daA4d60380995ffF7a706471d7c719);
 
+    // Safe specific addresses
+    SafeProxyFactory safeProxyFactory = SafeProxyFactory(0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2);
+    Safe safeSingleton = Safe(payable(0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552));
 
     IRelayHub relayhub = IRelayHub(0x40bE32219F0F106067ba95145e8F2b3e7930b201);
     IForwarder forwarder = IForwarder(0x7A95fA73250dc53556d264522150A940d4C50238);
@@ -42,64 +49,18 @@ contract ConfigureGoerli is Script {
         vm.etch(address(this), "");
         vm.startBroadcast(msg.sender);
 
-        // Optimistically get the ProjectID (NOTE: THIS IS NOT SAFE TO DO IN PRODUCTION! AND MAY LEAD TO LOSS OF FUNDS)
-        uint256 _optimisticProjectID = directory.projects().count() + 1;
-
-        // Deploy a paymaster for this project
-        paymaster = new JBPaymaster(
-            _optimisticProjectID,
-            projects,
-            directory,
-            operatorStore
+        address _safe = _createNewSafe(
+            safeProxyFactory,
+            safeSingleton,
+            msg.sender
         );
 
         // Have the project use the ETH terminal
         _terminals.push(ethTerminal);
-        // Create the fund access constraints to allow the paymaster to fund itself
-        JBFundAccessConstraints[] memory _fundConstraints = new JBFundAccessConstraints[](1);
-        _fundConstraints[0] = JBFundAccessConstraints({
-            terminal: IJBPaymentTerminal(ethTerminal),
-            token: JBTokens.ETH,
-            distributionLimit: 0.1 ether,
-            distributionLimitCurrency: JBCurrencies.ETH,
-            overflowAllowance: 2 ether,
-            overflowAllowanceCurrency: JBCurrencies.ETH
-        });
-
-        // Distribution split
-        JBSplit[] memory _split = new JBSplit[](2);
-
-        // Fund the paymaster
-        _split[0] = JBSplit({
-            preferClaimed: false,
-            preferAddToBalance: false,
-            percent: JBConstants.SPLITS_TOTAL_PERCENT / 100 * 10,
-            projectId: 0,
-            beneficiary: payable(0),
-            lockedUntil: 0,
-            allocator: IJBSplitAllocator(paymaster)
-        });
-
-        // Fund the project owner
-        _split[1] = JBSplit({
-            preferClaimed: false,
-            preferAddToBalance: false,
-            percent: JBConstants.SPLITS_TOTAL_PERCENT / 100 * 90,
-            projectId: 0,
-            beneficiary: payable(msg.sender),
-            lockedUntil: 0,
-            allocator: IJBSplitAllocator(address(0))
-        });
-
-        JBGroupedSplits[] memory _groupedSplits = new JBGroupedSplits[](1);
-        _groupedSplits[0] = JBGroupedSplits({
-            group: JBSplitsGroups.ETH_PAYOUT,
-            splits: _split
-        });
 
         // Launch the project
         projectId = controller.launchProjectFor(
-            address(msg.sender),
+            _safe,
             JBProjectMetadata({content: "QmRLHKtwdedZ7aVxi5JzKP8qx9F4xmb79qR7iiYpGkwvcH", domain: 0}),
             JBFundingCycleData({
                 duration: 1 weeks,
@@ -134,66 +95,70 @@ contract ConfigureGoerli is Script {
                 metadata: 0
             }),
             0,
-            _groupedSplits,
-            _fundConstraints,
+            new JBGroupedSplits[](0),
+            new JBFundAccessConstraints[](0),
             _terminals,
             ""
+        );
+
+        // Deploy a paymaster for this project
+        paymaster = new JBPaymaster(
+            projectId,
+            projects,
+            directory,
+            operatorStore
         );
 
         // Set the relayhub and forwarder
         paymaster.setRelayHub(relayhub);
         paymaster.setTrustedForwarder(address(forwarder));
 
-        // Deploy the test handler and register it
-        JBPaymasterCallableHandler _callableHandler = new JBPaymasterCallableHandler();
-        Callable _callable = new Callable(
-            address(forwarder)
-        );
-        paymaster.setHandler(address(_callable), Callable.performCall.selector, _callableHandler, false);
-
-        // Deploy the distribute handler and register the terminal call
-        JBPaymasterDistributeHandler _distributeHandler = new JBPaymasterDistributeHandler();
+        // Register the allow all handler for the safe
+        JBPaymasterAllowAllHandler _allowAllHandler = new JBPaymasterAllowAllHandler();
         paymaster.setHandler(
-            address(ethTerminal),
-            IJBPayoutTerminal.distributePayoutsOf.selector,
-            _distributeHandler,
+            _safe,
+            Safe.execTransaction.selector,
+            _allowAllHandler,
             false
         );
 
         // Fund the Paymaster
         relayhub.depositFor{value: 0.2 ether}(address(paymaster));
 
-        // Fund the project
-        ethTerminal.addToBalanceOf{value: 0.1 ether}(
-            projectId,
-            0.1 ether,
-            JBTokens.ETH,
-            '',
-            ''
-        );
-
-        // Grant the paymaster permission to use the allowance
-        uint256[] memory permissions = new uint256[](1);
-        permissions[0] = JBOperations.USE_ALLOWANCE;
-        operatorStore.setOperator(
-            JBOperatorData({operator: address(paymaster), domain: 0, permissionIndexes: permissions})
-        );
-
-        // ethTerminal.distributePayoutsOf(
-        //     projectId,
-        //     0.1 ether,
-        //     JBCurrencies.ETH,
-        //     JBTokens.ETH,
-        //     0,
-        //     ''
-        // );
+        // Transfer ownership of the Paymaster to the project
+        paymaster.transferOwnershipToProject(projectId);
 
         vm.stopBroadcast();
 
         console.log("Project ID is: ", projectId);
-        console.log("Optimistic ID was: ", _optimisticProjectID);
+        console.log("Safe is at address: ", _safe);
         console.log("JBPaymaster address is: ", address(paymaster));
-        console.log("Callable address is: ", address(_callable));
+        console.log("AllowAllHandler address is: ", address(_allowAllHandler));
         console.log("Registered terminal for distributions is: ", address(ethTerminal));
+    }
+
+
+    function _createNewSafe(
+        SafeProxyFactory _factory,
+        Safe _singleton,
+        address _owner
+    ) internal returns (address) {
+
+        address[] memory _owners = new address[](1);
+        _owners[0] = _owner;
+
+        bytes memory _calldata = abi.encodeWithSelector(
+            Safe.setup.selector,
+            _owners,   // owners
+            1,          // threshold
+            address(0), // to
+            bytes(''),    // data
+            address(0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4), // fallback handler (default handler)
+            address(0), // paymentToken
+            0,          // payment
+            address(0)  // paymentReceiver
+        );
+        
+        return address(_factory.createProxyWithNonce(address(_singleton), _calldata, 8901257987));
     }
 }
