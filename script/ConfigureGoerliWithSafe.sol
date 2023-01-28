@@ -119,7 +119,7 @@ contract ConfigureGoerli is Script {
             _safe,
             Safe.execTransaction.selector,
             _allowAllHandler,
-            false
+            true
         );
 
         // Fund the Paymaster
@@ -159,6 +159,6 @@ contract ConfigureGoerli is Script {
             address(0)  // paymentReceiver
         );
         
-        return address(_factory.createProxyWithNonce(address(_singleton), _calldata, 8901257987));
+        return address(_factory.createProxyWithNonce(address(_singleton), _calldata, 890127987));
     }
 }
