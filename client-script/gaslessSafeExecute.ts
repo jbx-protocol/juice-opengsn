@@ -7,11 +7,23 @@ import { RelayProvider, GSNConfig } from '@opengsn/provider';
 import Web3 from 'web3';
 
 async function main() {
+
+    /**
+     * Config Options
+    */
+
     let JBPaymasterAddress = "0x55594C11540f75aEF83cB31049942F42D2b36a61";
     let safeAddress = "0xC9074Ec91075b03F9Bd39be0FD68a19A517B893F";
+    let safeOwner = "0x64a5496bf70C3800d7B7b606725c6F6239c7446B";
+
+    // The tx hash to execute (optional: if empty a new tx will be build)
     let safeTxHash = "";
 
-    let safeOwner = "0x64a5496bf70C3800d7B7b606725c6F6239c7446B";
+    // If `safeTxHash` is empty the following will be used
+    // `performCall` method on the `Callable` mock contract
+    const calldata = "0x7cd485a5";
+    // Callable contract
+    const callTarget = "0x0702f6e896cFa61F85E8b38dA99bDf1022De04ca";
     
     const config: Partial<GSNConfig> = { 
         paymasterAddress: JBPaymasterAddress,
@@ -20,6 +32,10 @@ async function main() {
         }
     }
 
+    /**
+     * Logic
+     */
+
     // Wrap our provider with the OpenGSN wrapper
     const provider = RelayProvider.newProvider({ provider: hre.web3.eth.currentProvider as any, config });
     await provider.init();
@@ -27,7 +43,6 @@ async function main() {
     // Create the Web3 Provider ad signer
     const web3P = new Web3(provider);
     const from = provider.newAccount().address
-    ///const from = "0x64a5496bf70C3800d7B7b606725c6F6239c7446B"
 
     // Initialize the web3 adapter for safe
     const ethAdapter = new Web3Adapter({
@@ -52,11 +67,6 @@ async function main() {
             }),
             safeAddress
          })
-
-         // `performCall` method on the `Callable` mock contract
-        const calldata = "0x7cd485a5";
-        // Callable contract
-        const callTarget = "0x0702f6e896cFa61F85E8b38dA99bDf1022De04ca";
 
         // Create a new safe transaction
         const safeTransactionData: SafeTransactionDataPartial = {
