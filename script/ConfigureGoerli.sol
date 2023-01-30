@@ -1,22 +1,40 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Script.sol";
+import { Script, console } from "forge-std/Script.sol";
 
-import "../src/JBPaymaster.sol";
-import "../src/handlers/JBPaymasterDistributeHandler.sol";
-import "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
-import "../src/forge-test/mock/Callable.sol";
+import { JBPaymaster } from "../src/JBPaymaster.sol";
+import { JBPaymasterCallableHandler } from "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
+import { JBPaymasterDistributeHandler } from "../src/handlers/JBPaymasterDistributeHandler.sol";
+import { Callable } from "../src/forge-test/mock/Callable.sol";
 
 import { IForwarder } from "@opengsn/contracts/src/forwarder/IForwarder.sol";
+import { IRelayHub } from "@opengsn/contracts/src/interfaces/IRelayHub.sol";
 
-import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBSplitsGroups.sol"; // JBSplitsGroups
-import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBOperations.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBConstants.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBController.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBOperatorStore.sol";
+import { JBProjectMetadata } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBProjectMetadata.sol";
+import { JBFundingCycleData } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleData.sol";
+import { JBFundingCycleMetadata } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleMetadata.sol";
+import { JBGlobalFundingCycleMetadata } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGlobalFundingCycleMetadata.sol";
+import { JBGroupedSplits } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGroupedSplits.sol";
+import { JBSplit } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBSplit.sol";
+import { JBFundAccessConstraints } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundAccessConstraints.sol";
+import { JBOperatorData } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBOperatorData.sol";
+
+import { JBConstants } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBConstants.sol";
+import { JBCurrencies } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol";
+import { JBTokens } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol";
+import { JBSplitsGroups } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBSplitsGroups.sol";
+import { JBOperations } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBOperations.sol";
+
+import { IJBProjects } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
+import { IJBPaymentTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPaymentTerminal.sol";
+import { IJBSplitAllocator } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSplitAllocator.sol";
+import { IJBOperatorStore } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBOperatorStore.sol";
+import { IJBController } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBController.sol";
+import { IJBDirectory } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
+import { IJBFundingCycleBallot } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBFundingCycleBallot.sol";
+import { IJBPayoutTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPayoutTerminal.sol";
+import { IJBPayoutRedemptionPaymentTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPayoutRedemptionPaymentTerminal.sol";
 
 contract ConfigureGoerli is Script {
     uint256 projectId;

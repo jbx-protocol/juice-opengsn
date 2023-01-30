@@ -1,48 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.6;
 
-import "forge-std/Script.sol";
+import { Script, console } from "forge-std/Script.sol";
 
-import "../src/JBPaymaster.sol";
-import "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
-import "../src/forge-test/mock/Callable.sol";
+import { AccessJBLib } from "../src/forge-test/mock/AccessJBLib.sol";
 
+import { JBPaymaster } from "../src/JBPaymaster.sol";
+import { JBPaymasterCallableHandler } from "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
+import { Callable } from "../src/forge-test/mock/Callable.sol";
+
+import { IRelayHub } from "@opengsn/contracts/src/interfaces/IRelayHub.sol";
 import { IForwarder } from "@opengsn/contracts/src/forwarder/IForwarder.sol";
 
-import "@jbx-protocol/juice-contracts-v3/contracts/JBController.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBDirectory.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBETHPaymentTerminal.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBERC20PaymentTerminal.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBSingleTokenPaymentTerminalStore.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBFundingCycleStore.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBOperatorStore.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBPrices.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBProjects.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBSplitsStore.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBToken.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/JBTokenStore.sol";
+import { JBProjectMetadata } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBProjectMetadata.sol";
+import { JBFundingCycleData } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleData.sol";
+import { JBFundingCycleMetadata } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleMetadata.sol";
+import { JBGlobalFundingCycleMetadata } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGlobalFundingCycleMetadata.sol";
+import { JBGroupedSplits } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGroupedSplits.sol";
+import { JBFundingCycle } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycle.sol";
+import { JBFundAccessConstraints } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundAccessConstraints.sol";
 
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBDidPayData.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBDidRedeemData.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFee.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundAccessConstraints.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycle.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleData.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleMetadata.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGroupedSplits.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBOperatorData.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBPayParamsData.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBProjectMetadata.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBRedeemParamsData.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/structs/JBSplit.sol";
+import { JBConstants } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBConstants.sol";
+import { IJBPaymentTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPaymentTerminal.sol";
+import { IJBDirectory } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
+import { IJBFundingCycleBallot } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBFundingCycleBallot.sol";
 
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPaymentTerminal.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBToken.sol";
-
-import "../src/forge-test/mock/AccessJBLib.sol";
-
-//import '@paulrberg/contracts/math/PRBMath.sol';
-
+import { JBOperatorStore } from "@jbx-protocol/juice-contracts-v3/contracts/JBOperatorStore.sol";
+import { JBProjects } from "@jbx-protocol/juice-contracts-v3/contracts/JBProjects.sol";
+import { JBPrices } from "@jbx-protocol/juice-contracts-v3/contracts/JBPrices.sol";
+import { JBDirectory } from "@jbx-protocol/juice-contracts-v3/contracts/JBDirectory.sol";
+import { JBFundingCycleStore } from "@jbx-protocol/juice-contracts-v3/contracts/JBFundingCycleStore.sol";
+import { JBToken } from "@jbx-protocol/juice-contracts-v3/contracts/JBToken.sol";
+import { JBTokenStore } from "@jbx-protocol/juice-contracts-v3/contracts/JBTokenStore.sol";
+import { JBSplitsStore } from "@jbx-protocol/juice-contracts-v3/contracts/JBSplitsStore.sol";
+import { JBController } from "@jbx-protocol/juice-contracts-v3/contracts/JBController.sol";
+import { JBSingleTokenPaymentTerminalStore } from "@jbx-protocol/juice-contracts-v3/contracts/JBSingleTokenPaymentTerminalStore.sol";
+import { JBETHPaymentTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/JBETHPaymentTerminal.sol";
+import { JBERC20PaymentTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/JBERC20PaymentTerminal.sol";
 // Base contract for Juicebox system tests.
 //
 // Provides common functionality, such as deploying contracts on test setup.
