@@ -7,6 +7,8 @@ import "../src/JBPaymaster.sol";
 import "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
 import "../src/forge-test/mock/Callable.sol";
 
+import { IForwarder } from "@opengsn/contracts/src/forwarder/IForwarder.sol";
+
 import "@jbx-protocol/juice-contracts-v3/contracts/JBController.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/JBDirectory.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/JBETHPaymentTerminal.sol";

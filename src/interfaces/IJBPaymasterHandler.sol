@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "@opengsn/contracts/src/utils/GsnTypes.sol";
+import { GsnTypes } from "@opengsn/contracts/src/utils/GsnTypes.sol";
 
 interface IJBPaymasterHandler {
     /**

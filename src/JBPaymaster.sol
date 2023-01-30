@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./structs/HandlerOptions.sol";
-import "./interfaces/IJBPaymasterHandler.sol";
+import { HandlerOptions } from "./structs/HandlerOptions.sol";
+import { IJBPaymasterHandler, GsnTypes } from "./interfaces/IJBPaymasterHandler.sol";
 
-import "@opengsn/contracts/src/BasePaymaster.sol";
+import { BasePaymaster, GsnEip712Library, Ownable, IRelayHub, IPaymaster } from "@opengsn/contracts/src/BasePaymaster.sol";
 
-import "@jbx-protocol/juice-ownable/src/JBOwnable.sol";
+import { JBOwnableOverrides } from "@jbx-protocol/juice-ownable/src/JBOwnableOverrides.sol";
 
-import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/abstract/JBOperatable.sol";
+import { JBTokens } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBTokens.sol";
+import { JBCurrencies } from "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBCurrencies.sol";
 
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSplitAllocator.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBAllowanceTerminal.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
-import "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
+import { JBSplitAllocationData } from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBSplitAllocationData.sol";
+
+import { IJBOperatorStore } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBOperatorStore.sol";
+import { IJBPaymentTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBPaymentTerminal.sol";
+import { IJBSplitAllocator } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBSplitAllocator.sol";
+import { IJBAllowanceTerminal } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBAllowanceTerminal.sol";
+import { IJBProjects } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBProjects.sol";
+import { IJBDirectory } from "@jbx-protocol/juice-contracts-v3/contracts/interfaces/IJBDirectory.sol";
 
 /**
  * OpenGSN paymaster extended to allow for better integration with Juicebox projects
@@ -124,7 +127,7 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
      * @notice fund the relayhub by adding it to the funding cycle distribution
      */
     function allocate(JBSplitAllocationData calldata) external payable {
-        // Shorthand to make sure we are being paid ETH and not a token
+        // Shorthand to make sure we are being paid in ETH and not a token
         require(msg.value > 0);
         // Fund the relayhub
         relayHub.depositFor{value: payable(this).balance}(address(this));
@@ -146,7 +149,11 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
 
         // Add the balance back to the project
         _terminal.addToBalanceOf{value: payable(this).balance}(
-            projectId, payable(this).balance, address(0), "OpenGSN refund", bytes("")
+            projectId,
+            payable(this).balance,
+            address(0),
+            "OpenGSN refund",
+            bytes("")
         );
     }
 
@@ -238,7 +245,9 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     function _verifyForwarder(
         GsnTypes.RelayRequest calldata relayRequest
     ) internal view virtual override {
+        // Make sure this paymaster trusts the provided forwarder
         require(getTrustedForwarder() == relayRequest.relayData.forwarder, "Forwarder is not trusted");
+
         // We override GNS default behavior as not every call we do requires the recipient contract to trust the forwarder
         // Some contracts are entirely permisionless and the contract does not care about who calls it.
         // This check is now optionally performed in `_preRelayedCall(..)`
@@ -252,7 +261,6 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     function _methodSigFromCalldata(bytes calldata _data) public pure returns (bytes4) {
         return (bytes4(_data[0]) | (bytes4(_data[1]) >> 8) | (bytes4(_data[2]) >> 16) | (bytes4(_data[3]) >> 24));
     }
-
 
     //*********************************************************************//
     // -------------------------- overrides ------------------------------ //

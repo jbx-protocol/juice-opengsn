@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../JBPaymaster.sol";
-import "../interfaces/IJBPaymasterHandler.sol";
+import { IJBPaymasterHandler, GsnTypes } from "../interfaces/IJBPaymasterHandler.sol";
 
 contract JBPaymasterAllowAllHandler is IJBPaymasterHandler {
     

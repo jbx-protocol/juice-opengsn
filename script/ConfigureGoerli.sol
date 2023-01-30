@@ -8,6 +8,8 @@ import "../src/handlers/JBPaymasterDistributeHandler.sol";
 import "../src/forge-test/mock/JBPaymasterCallableHandler.sol";
 import "../src/forge-test/mock/Callable.sol";
 
+import { IForwarder } from "@opengsn/contracts/src/forwarder/IForwarder.sol";
+
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBSplitsGroups.sol"; // JBSplitsGroups
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBOperations.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBConstants.sol";

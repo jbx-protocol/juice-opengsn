@@ -12,6 +12,8 @@ import "../src/forge-test/mock/Callable.sol";
 import { SafeProxyFactory } from "@safe-global/contracts/proxies/SafeProxyFactory.sol";
 import { Safe } from "@safe-global/contracts/Safe.sol";
 
+import { IForwarder } from "@opengsn/contracts/src/forwarder/IForwarder.sol";
+
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBSplitsGroups.sol"; // JBSplitsGroups
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBOperations.sol";
 import "@jbx-protocol/juice-contracts-v3/contracts/libraries/JBConstants.sol";
