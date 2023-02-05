@@ -30,7 +30,7 @@ contract JBPaymasterRefillHandler is IJBPaymasterHandler {
         }
 
         // We don't require a callback
-        return (bytes(""), false);
+        return (bytes(""), true);
     }
 
     function postRelayCall(bytes memory context) external {}

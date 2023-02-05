@@ -17,7 +17,7 @@ contract JBPaymasterCallableHandler is IJBPaymasterHandler {
         uint256
     ) external view returns (bytes memory, bool) {
         // We don't require a callback
-        return (bytes(""), false);
+        return (bytes(""), true);
     }
 
     function postRelayCall(bytes memory context) external {}

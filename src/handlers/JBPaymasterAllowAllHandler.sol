@@ -23,7 +23,7 @@ contract JBPaymasterAllowAllHandler is IJBPaymasterHandler {
         uint256 // maxPossibleGas
     ) external view returns (bytes memory, bool) {
         // We don't require a callback
-        return (bytes(""), false);
+        return (bytes(""), true);
     }
 
     function postRelayCall(bytes memory context) external {}
