@@ -6,6 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { JBPaymaster } from "../JBPaymaster.sol";
 import { JBPaymasterCallableHandler } from "./mock/JBPaymasterCallableHandler.sol";
 import { Callable } from "./mock/Callable.sol";
+import { RefillOptions } from "../structs/RefillOptions.sol";
 
 import { IPaymaster } from "@opengsn/contracts/src/interfaces/IPaymaster.sol";
 import { IRelayHub } from "@opengsn/contracts/src/interfaces/IRelayHub.sol";
@@ -150,7 +151,8 @@ contract JBPaymasterTest is Test {
         paymaster.fundFromAllowance();
 
         // We can't compare it exactly since JB will take a fee, so we just check if its atleast the minimum
-        assertGt(relayhub.balanceOf(address(paymaster)), paymaster.refillBelow());
+        (uint200 refillToAmount, uint16 refillBelowPercentage,) = paymaster.refillOptions();
+        assertGt(relayhub.balanceOf(address(paymaster)), refillToAmount/ 100 * refillBelowPercentage);
     }
 
     function testPaymasterHandler() external {

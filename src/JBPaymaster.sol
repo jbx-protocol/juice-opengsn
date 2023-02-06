@@ -30,12 +30,14 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     //*********************************************************************//
     event HandlerSet(address callable, bytes4 callableSignature, address handler, address setBy);
     event FallbackHandlerSet(address handler, address setBy);
+    event RefillOptionsChanged();
 
     //*********************************************************************//
     // --------------------------- custom errors ------------------------- //
     //*********************************************************************//
     error NO_HANDLER_FOR_CALL(address _target, bytes4 _method);
     error NOT_READY_FOR_REFILL();
+    error INVALID_NEW_REFILL_OPTIONS();
 
     //*********************************************************************//
     // --------------------- public stored properties -------------------- //
@@ -52,7 +54,7 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     mapping(bytes32 => HandlerOptions) handlers;
     // The handler that gets used if no specific handler is registered
     HandlerOptions public fallbackHandler;
-    // 
+    // Configuration options regarding how (and if) this paymaster should use allowance
     RefillOptions public refillOptions;
 
     //*********************************************************************//
@@ -202,6 +204,21 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
             handler: _handler
         });
         emit FallbackHandlerSet(address(_handler), _msgSender());
+    }
+
+    /**
+     * @notice Set the refill options
+     * @param _newOptions The options to set the paymaster to
+     */
+    function setRefillOptions(RefillOptions calldata _newOptions)
+        external
+        onlyOwner
+    {
+        if (_newOptions.refillBelowPercentage > 100)
+            revert INVALID_NEW_REFILL_OPTIONS();
+        
+        refillOptions = _newOptions;
+        emit RefillOptionsChanged();
     }
 
     //*********************************************************************//
