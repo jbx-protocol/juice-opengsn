@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import { HandlerOptions } from "./structs/HandlerOptions.sol";
+import { RefillOptions } from "./structs/RefillOptions.sol";
 import { IJBPaymasterHandler, GsnTypes } from "./interfaces/IJBPaymasterHandler.sol";
 
 import { BasePaymaster, GsnEip712Library, Ownable, IRelayHub, IPaymaster } from "@opengsn/contracts/src/BasePaymaster.sol";
@@ -50,11 +51,9 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
     // Mapping keccak256(target address, method signature)
     mapping(bytes32 => HandlerOptions) handlers;
     // The handler that gets used if no specific handler is registered
-    HandlerOptions fallbackHandler;
-    // To what amount should the contract refill when doing so from the allowance (before JB fee)
-    uint256 public refillToAmount = 1 ether;
-    // Below what amount are users allowed to use the allowance to refill the contract
-    uint256 public refillBelow = 0.5 ether;
+    HandlerOptions public fallbackHandler;
+    // 
+    RefillOptions public refillOptions;
 
     //*********************************************************************//
     // ------------------------- external views -------------------------- //
@@ -99,12 +98,29 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
      *  it will revert if the project has not given this contract access to the overflow
      */
     function fundFromAllowance() public {
-        // Check if the paymaster wants to be refilled
+        // Load from storage once
+        RefillOptions memory _refillOptions = refillOptions;
+        // If no refill options were set
+        if (_refillOptions.refillToAmount == 0) revert NOT_READY_FOR_REFILL();
+
+        // Get the relayhub balance for this paymaster
         uint256 _currentBalance = relayHub.balanceOf(address(this));
-        if (_currentBalance > refillBelow) revert NOT_READY_FOR_REFILL();
+
+        // Either only the owner may call this, or anyone may call this
+        // if anyone may call this then we need to check if conditions allow for a refill
+        if ( !_refillOptions.anyoneMayCall ){
+            _checkOwner();
+        }else{
+            if (
+                _currentBalance > (
+                     _refillOptions.refillToAmount / 100
+                     * _refillOptions.refillBelowPercentage 
+                )
+            ) revert NOT_READY_FOR_REFILL();
+        }
 
         // Calculate how much we should refill
-        uint256 _refillAmount = refillToAmount - _currentBalance;
+        uint256 _refillAmount = _refillOptions.refillToAmount - _currentBalance;
 
         IJBAllowanceTerminal _terminal =
             IJBAllowanceTerminal(address(directory.primaryTerminalOf(projectId, JBTokens.ETH)));
