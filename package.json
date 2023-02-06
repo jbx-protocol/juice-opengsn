@@ -1,4 +1,14 @@
 {
+  "name": "@jbx-protocol/juice-opengsn",
+  "bugs": {
+    "url": "https://github.com/jbx-protocol/juice-opengsn/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbx-protocol/juice-opengsn"
+  },
+  "version": "0.0.1",
+  "license": "MIT",
   "dependencies": {
     "@jbx-protocol/juice-contracts-v3": "^2.0.2",
     "@jbx-protocol/juice-ownable": "https://github.com/jbx-protocol/juice-ownable",
@@ -21,7 +31,5 @@
     "hardhat": "^2.12.5",
     "ts-node": "^10.9.1",
     "web3": "^1.8.1"
-  },
-  "version": "0.0.1",
-  "license": "MIT"
+  }
 }
