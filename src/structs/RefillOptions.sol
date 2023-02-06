@@ -9,6 +9,6 @@ pragma solidity ^0.8.13;
 
 struct RefillOptions {
     uint200 refillToAmount;
-    uint16 refillBelowPercentage;
+    uint8 refillBelowPercentage;
     bool anyoneMayCall;
 }

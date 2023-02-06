@@ -151,8 +151,8 @@ contract JBPaymasterTest is Test {
         paymaster.fundFromAllowance();
 
         // We can't compare it exactly since JB will take a fee, so we just check if its atleast the minimum
-        (uint200 refillToAmount, uint16 refillBelowPercentage,) = paymaster.refillOptions();
-        assertGt(relayhub.balanceOf(address(paymaster)), refillToAmount/ 100 * refillBelowPercentage);
+        (uint200 refillToAmount, uint8 refillBelowPercentage,) = paymaster.refillOptions();
+        assertGt(relayhub.balanceOf(address(paymaster)), refillToAmount / 100 * refillBelowPercentage);
     }
 
     function testPaymasterHandler() external {
