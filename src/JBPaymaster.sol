@@ -66,7 +66,7 @@ contract JBPaymaster is JBOwnableOverrides, BasePaymaster, IJBSplitAllocator {
      * @notice Used by OpenGSN to identify the paymaste type
      */
     function versionPaymaster() external view virtual override returns (string memory) {
-        return "3.0.0-beta.2+juicebox.project-owned.ipaymaster";
+        return "3.0.0-beta.3+juicebox.project-owned.ipaymaster";
     }
 
     //*********************************************************************//
